@@ -5,6 +5,15 @@ from llama_index.core import Document
 import requests
 import json
 
+from llama_index.core.node_parser import SentenceSplitter
+from llama_index.core import VectorStoreIndex
+from llama_index.retrievers.bm25 import BM25Retriever 
+from llama_index.core.retrievers import VectorIndexRetriever
+from HybridRetriever import HybridRetriever
+from ChatEngine import ChatEngine
+from configs import *
+
+
 def process_file(file):
     file_extension = file.split(".")[-1].lower()
 
@@ -56,3 +65,17 @@ def send_request_2_llm(prompt: str):
                         print(f"Failed to decode JSON: {line.decode('utf-8')}")
         else:
             yield json.dumps({"text":f"Error: Received status code {response.status_code}"})
+
+def process_and_respond(file, question):
+    documents = process_file(file)
+    
+    text_splitter = SentenceSplitter(chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP)
+    vector_index = VectorStoreIndex.from_documents(
+        documents, transformations=[text_splitter], embed_model=Settings.embed_model, show_progress=True
+    )
+    bm25_retriever = BM25Retriever(nodes=documents, similarity_top_k=TOP_K, tokenizer=text_splitter.split_text)
+    vector_retriever = VectorIndexRetriever(index=vector_index, similarity_top_k=TOP_K)
+    hybrid_retriever = HybridRetriever(bm25_retriever=bm25_retriever, vector_retriever=vector_retriever)
+    chat_engine = ChatEngine(hybrid_retriever)
+    chat_history = chat_engine.ask_question(question)  # returns modified text with relevant documents + question
+    return len(chat_history), send_request_2_llm(chat_history)
