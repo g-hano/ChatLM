@@ -53,7 +53,7 @@ def process_file(file):
 
 def send_request_2_llm(prompt: str):
     url = "http://localhost:8000/generate"
-    if len(prompt) > 27_000:
+    if len(prompt) > 27_000: # model-len is set to 27k on vllm.entrypoints.api_server
         prompt = prompt[:27_000]
     payload = {
         "prompt": prompt,
@@ -61,14 +61,15 @@ def send_request_2_llm(prompt: str):
         "min_tokens": 256,
         "max_tokens": 1024
     }
-    
+    last_response_len = len(prompt)
     with requests.post(url, json=payload, stream=True) as response:
         if response.status_code == 200:
             for line in response.iter_lines():
                 if line:
                     try:
                         chunk = json.loads(line.decode('utf-8'))
-                        yield chunk.text #json.dumps(chunk) 
+                        yield chunk.text[last_response_len:]
+                        last_response_len = len(chunk.text[last_response:])#json.dumps(chunk) 
                     except json.JSONDecodeError:
                         print(f"Failed to decode JSON: {line.decode('utf-8')}")
         else:
