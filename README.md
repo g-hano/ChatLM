@@ -1,5 +1,3 @@
-# Chat2Mistral
-
 This project implements a Retrieval-Augmented Generation (RAG) application utilizing a hybrid search mechanism, combining keyword and vector search for document retrieval. It uses the LlamaIndex framework and integrates language models and embedding models from LangChain and Hugging Face. Additionally, a Flask app is provided for running the application.
 
 ## Features
@@ -7,46 +5,7 @@ This project implements a Retrieval-Augmented Generation (RAG) application utili
 - **Hybrid Search:** Combines BM25 keyword search and vector search to retrieve the most relevant documents.
 - **Language Models:** Utilizes models from LangChain and Hugging Face for generating responses.
 - **Flask Integration:** Provides a Flask app for easy deployment and usage.
-- **Markdown Responses:** Ensures responses are formatted in markdown.
 
-## Installation
-
-1. Clone the repository:
-
-```bash
-git clone https://github.com/g-hano/Chat2Mistral.git
-cd Chat2Mistral
-```
-
-2. Install the required packages:
-
-```bash
-pip install -r requirements.txt
-```
-
-## Configuration
-
-The application configuration can be adjusted in the `configs` section of the code. Key configuration parameters include:
-
-- `MODEL_NAME`: The name of the language model (e.g., `mistralai/Mistral-7B-Instruct-v0.3`).
-- `EMBEDDING_NAME`: The name of the embedding model (e.g., `nomic-ai/nomic-embed-text-v1.5`).
-- `TEMPERATURE`: The temperature setting for the language model.
-- `CONTEXT_WINDOW`: The context window size for the model.
-- `TOP_K`: The number of top results to retrieve.
-- `CHUNK_SIZE`: The chunk size for document splitting.
-- `CHUNK_OVERLAP`: The overlap size between chunks.
-- `SYSTEM_PROMPT`: The system prompt provided to the language model.
-- `DEVICE`: The device to run the models on (`cpu` or `cuda`).
-
-## Usage
-
-### Running the Flask App
-
-Start the Flask app:
-
-```bash
-python flask_app.py
-```
 
 ### ChatEngine Class
 
