@@ -6,6 +6,9 @@ This project implements a Retrieval-Augmented Generation (RAG) application utili
 - **Language Models:** Utilizes models from LangChain and Hugging Face for generating responses.
 - **Flask Integration:** Provides a Flask app for easy deployment and usage.
 
+```python
+python -m vllm.entrypoints.api_server --model=mistralai/Mistral-7B-Instruct-v0.3 --dtype=half --tensor-parallel-size=4 --gpu-memory-utilization=0.5 --max-model-len=27000
+```
 
 ### ChatEngine Class
 
