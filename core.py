@@ -4,7 +4,7 @@ from docx import Document as DocxDocument
 from llama_index.core import Document
 import requests
 import json
-
+from llama_index.core import Settings
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core import VectorStoreIndex
 from llama_index.retrievers.bm25 import BM25Retriever 
