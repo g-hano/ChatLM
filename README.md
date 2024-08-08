@@ -1,3 +1,10 @@
+# I need to solve!
+**vllm_response.txt is the response I get from each request**
+- LLM respond in stream style but I can not convert it to json
+- After converting, I need to access `text`, slice by `len(prompt)`
+- print on Flask app screen
+
+
 This project implements a Retrieval-Augmented Generation (RAG) application utilizing a hybrid search mechanism, combining keyword and vector search for document retrieval. It uses the LlamaIndex framework and integrates language models and embedding models from LangChain and Hugging Face. Additionally, a Flask app is provided for running the application.
 
 ## Features
