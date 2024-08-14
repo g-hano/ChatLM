@@ -3,11 +3,10 @@ import fitz
 from docx import Document as DocxDocument
 from llama_index.core import Document
 import requests
-import json
 from llama_index.core import Settings
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core import VectorStoreIndex
-from llama_index.retrievers.bm25 import BM25Retriever 
+from llama_index.retrievers.bm25 import BM25Retriever
 from llama_index.core.retrievers import VectorIndexRetriever
 from HybridRetriever import HybridRetriever
 from ChatEngine import ChatEngine
@@ -15,6 +14,24 @@ from configs import *
 
 
 def process_file(file):
+    """
+    Processes an input file based on its extension and extracts text content.
+    
+    The function handles:
+    - **TXT**: Reads the entire content of a plain text file.
+    - **CSV**: Reads and converts the content of a CSV file into a string where each row is
+      joined by commas and each line is seperated by a newline character.
+    - **PDF**: Extracts text from all pages of a PDF file using `fitz` library.
+    - **DOCX**: Extracts text from a Word document using `python-docx` library.
+
+    Args:
+      file: The file to be processed.
+    Returns:
+      list[llama_index.core.Document]: A list of Document objects with the extracted text.
+    Raises:
+      Exception: if the file extension is not one of the supported types (txt,csv,pdf,docx).
+    """
+
     file_extension = file.split(".")[-1].lower()
 
     if file_extension == 'txt':
@@ -43,6 +60,23 @@ def process_file(file):
     return [Document(text=text)]
 
 def send_request_2_llm(prompt: str):
+    """
+    Sends a request to vllm.entrypoints.api_server with a prompt.
+    
+    This functions performs:
+    - **Truncates** the prompt if it exceeds 27,000 characters to accommodate the model's maximum input length.
+    - **Prepares** a JSON payload containing the prompt, streaming configuration, and token limits for the model.
+    - **Sends** the request to the language model server running at "http://localhost:8000/generate" using a POST request.
+    - **Streams** the response from the server to allow real-time processing of generated text.
+
+    Args:
+        prompt (str): The input prompt to be sent to the language model for text generation.
+
+    Returns:
+        tuple: A tuple containing:
+            - `int`: The length of the prompt after potential truncation.
+            - `Response`: The response object returned from the POST request to the server.
+    """
     url = "http://localhost:8000/generate"
     if len(prompt) > 27_000: # model-len is set to 27k on vllm.entrypoints.api_server
         prompt = prompt[:27_000]
@@ -53,20 +87,33 @@ def send_request_2_llm(prompt: str):
         "max_tokens": 1024
     }
     last_response_len = len(prompt)
-    with requests.post(url, json=payload, stream=True) as response:
-        if response.status_code == 200:
-            for line in response.iter_lines():
-                if line:
-                    try:
-                        chunk = json.loads(line.decode('utf-8'))
-                        yield chunk.text[last_response_len:]
-                        last_response_len = len(chunk.text[last_response:])#json.dumps(chunk) 
-                    except json.JSONDecodeError:
-                        print(f"Failed to decode JSON: {line.decode('utf-8')}")
-        else:
-            yield json.dumps({"text":f"Error: Received status code {response.status_code}"})
+    response = requests.post(url, json=payload, stream=True)
+    return len(prompt), response
 
 def process_and_respond(file, question):
+    """
+    Processes an input file, generates a response to a given question, and returns the response length along with the server response.
+
+    The function performs the following steps:
+    - **Processes** the input file to extract text content and creates a `Document` object.
+    - **Splits** the text into manageable chunks using a `SentenceSplitter` with specified chunk size and overlap.
+    - **Creates** a `VectorStoreIndex` from the processed documents, embedding them with the specified model for vector-based retrieval.
+    - **Initializes** two retrievers:
+        - **BM25Retriever**: Uses the BM25 algorithm for similarity-based retrieval of documents.
+        - **VectorIndexRetriever**: Uses the vector index for similarity-based retrieval.
+    - **Combines** the two retrievers into a `HybridRetriever`, which can utilize both retrieval methods.
+    - **Uses** a `ChatEngine` to generate a response to the provided question by retrieving relevant documents and combining them with the question.
+    - **Sends** the generated question and relevant document text to the language model server via `send_request_2_llm`.
+
+    Args:
+        file (str): The file path to be processed.
+        question (str): The question to be answered based on the file content.
+
+    Returns:
+        tuple: A tuple containing:
+            - `int`: The length of the chat history (combined relevant documents and question).
+            - `Response`: The response object from the language model server after processing the chat history.
+    """
     documents = process_file(file)
     
     text_splitter = SentenceSplitter(chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP)
@@ -78,4 +125,4 @@ def process_and_respond(file, question):
     hybrid_retriever = HybridRetriever(bm25_retriever=bm25_retriever, vector_retriever=vector_retriever)
     chat_engine = ChatEngine(hybrid_retriever)
     chat_history = chat_engine.ask_question(question)  # returns modified text with relevant documents + question
-    return len(chat_history), send_request_2_llm(chat_history)
+    return send_request_2_llm(chat_history)
