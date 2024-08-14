@@ -22,10 +22,10 @@ if __name__ == '__main__':
 
     embedding = HuggingFaceEmbedding(
         model_name=EMBEDDING_NAME,
-        device="cuda:2",
+        device="cuda:2", # on third GPU
         trust_remote_code=True,
-        )
-    Settings.embed_model = embedding
+    )
+    Settings.embed_model = embedding # Llama-index will use our custom embed model for retrieval
     
     @app.route('/', methods=['GET', 'POST'])
     def home():
@@ -35,7 +35,7 @@ if __name__ == '__main__':
     
     @app.route('/upload', methods=['POST'])
     def upload_file():
-        
+        # if file not provided
         if 'file' not in request.files:
             return jsonify({'error': 'No file part'}), 400
 
@@ -44,43 +44,30 @@ if __name__ == '__main__':
         if file.filename == '':
             return jsonify({'error': 'No selected file'}), 400
 
+        # if file provided
         if file:
             filename = secure_filename(file.filename)
             file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(file_path)
-            
+            print(f"file saved {file_path}")
             question = request.form.get('question', '')
             
-            def generate():
-                system_prompt_length, response_generator = process_and_respond(file_path, question)
-                logging.debug(f"System prompt length: {system_prompt_length}")
-                last_response = ""
-                try:
-                   for chunk in response_generator:
-                       try:
-                          # Attempt to parse the chunk as JSON
-                          json_chunk = json.loads(chunk)
-                          if "text" in json_chunk:
-                             full_text = json_chunk["text"]
-                             if len(full_text) > system_prompt_length:
-                                new_content = full_text[system_prompt_length:]
-                                if len(new_content) > len(last_response):
-                                   yield new_content[len(last_response):] + '\n'
-                                   last_response = new_content
-                          else:
-                              logging.debug("Received JSON chunk without 'text' key")
-                       except json.JSONDecodeError:
-                           # If it's not JSON, process it as before
-                           if len(chunk) > system_prompt_length:
-                              new_content = chunk[system_prompt_length:]
-                              if len(new_content) > len(last_response):
-                                 yield new_content[len(last_response):] + '\n'
-                                 last_response = new_content
-                           else:
-                               logging.debug("Chunk not longer than system prompt")
-                finally:
-                    os.remove(file_path)
+        def generate():
+            try:
+                # we can use prompt_len to slice down the text, not using rn
+                prompt_len, response = process_and_respond(file_path, question)
+                print("********* Generate Funct **********")
+                for line in response.iter_lines():
+                    if line:
+                        parsed_text = parse_json_stream(line)
+                        # returns None if we reach the end of the stream
+                        if parsed_text: # handle 'None' case
+                            for text in parsed_text:
+                                yield text
+            finally:
+                print(f"Deleting File {file_path}")
+                os.remove(file_path)
 
-            return Response(stream_with_context(generate()), content_type='text/plain')
+        return Response(stream_with_context(generate()), content_type='text/plain')
     app.run(host='0.0.0.0', port=5000)
 
