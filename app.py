@@ -21,7 +21,8 @@ def parse_json_stream(line):
         try:
             result, json_end = decoder.raw_decode(decoded_line[pos:])
             if "text" in result:
-                print(result["text"])
+                print(result["text"]) # works
+                yield result["text"] # not works
             pos += json_end
         except json.JSONDecodeError:
             pos += 1
