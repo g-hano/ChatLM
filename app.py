@@ -13,7 +13,19 @@ from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 import json
 from core import process_and_respond
 
-
+def parse_json_stream(line):
+    decoded_line = line.decode('utf-8')
+    decoder = json.JSONDecoder()
+    pos = 0
+    while pos < len(decoded_line):
+        try:
+            result, json_end = decoder.raw_decode(decoded_line[pos:])
+            if "text" in result:
+                print(result["text"])
+            pos += json_end
+        except json.JSONDecodeError:
+            pos += 1
+            
 if __name__ == '__main__':
     app = Flask(__name__, static_folder="static", static_url_path="/static")
     app.config['UPLOAD_FOLDER'] = 'uploads'
