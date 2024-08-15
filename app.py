@@ -21,10 +21,12 @@ def parse_json_stream(line):
         try:
             result, json_end = decoder.raw_decode(decoded_line[pos:])
             if "text" in result:
-                print(result["text"]) # works
-                yield result["text"] # not works
+                print(result["text"]) # debugging
+                if result["text"]:
+                   yield result["text"][0].encode("utf-8")
             pos += json_end
         except json.JSONDecodeError:
+            # if can't decode JSON, go next character
             pos += 1
             
 if __name__ == '__main__':
@@ -72,11 +74,10 @@ if __name__ == '__main__':
                 print("********* Generate Funct **********")
                 for line in response.iter_lines():
                     if line:
-                        parsed_text = parse_json_stream(line)
-                        # returns None if we reach the end of the stream
-                        if parsed_text: # handle 'None' case
-                            for text in parsed_text:
-                                yield text
+                        generator = parse_json_stream(line)
+                        for parsed_text in generator:
+                            if parsed_text:
+                                yield parsed_text
             finally:
                 print(f"Deleting File {file_path}")
                 os.remove(file_path)
