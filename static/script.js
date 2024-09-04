@@ -1,3 +1,5 @@
+// script.js
+
 function askQuestion() {
     const fileInput = document.getElementById('fileInput');
     const questionInput = document.getElementById('questionInput');
@@ -10,9 +12,22 @@ function askQuestion() {
     responseTextarea.value = '';  // Clear previous response
     console.log("Sending request to server...");
 
+    // Upload the file first
     fetch('/upload', {
         method: 'POST',
         body: formData
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        console.log("File uploaded successfully. Proceeding to generate response...");
+
+        // Then generate the response
+        return fetch('/generate', {
+            method: 'POST',
+            body: new URLSearchParams({ 'question': questionInput.value })
+        });
     })
     .then(response => {
         if (!response.ok) {
@@ -52,6 +67,6 @@ function askQuestion() {
     })
     .catch(error => {
         console.error('Error:', error);
-        responseTextarea.value = 'An error occurred while processing your request.';
     });
 }
+
