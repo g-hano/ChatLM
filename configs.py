@@ -14,3 +14,6 @@ any prefixes like 'assistant:' [/INST]"""
 running_on = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"---Running on {running_on}---")
 DEVICE = "auto"
+
+# Flask app configuration
+UPLOAD_FOLDER = 'uploads'
