@@ -32,4 +32,3 @@ class ChatEngine:
         chat_history = SYSTEM_PROMPT + "\n\n" + f"Question: {question}\n\nDocument: {document}"
         logging.info("Created Chat History")
         return chat_history
-
