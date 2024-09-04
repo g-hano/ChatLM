@@ -1,7 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>LLM Response</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM Response System</title>
     <script src="{{ url_for('static', filename='script.js') }}"></script>
     <style>
         #responseTextarea {
@@ -14,11 +16,14 @@
     </style>
 </head>
 <body>
+    <h2>Upload File and Ask a Question</h2>
     <form id="uploadForm" onsubmit="askQuestion(); return false;">
         <input type="file" id="fileInput" required>
         <input type="text" id="questionInput" placeholder="Enter your question" required>
         <button type="submit">Submit</button>
     </form>
+    <h3>Last Uploaded File: <span id="lastFilename">{{ last_filename }}</span></h3>
     <textarea id="responseTextarea" readonly></textarea>
 </body>
 </html>
+
