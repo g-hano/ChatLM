@@ -2,6 +2,8 @@ import csv
 import fitz
 from docx import Document as DocxDocument
 from llama_index.core import Document
+import json
+import time
 import requests
 from llama_index.core import Settings
 from llama_index.core.node_parser import SentenceSplitter
@@ -12,6 +14,22 @@ from HybridRetriever import HybridRetriever
 from ChatEngine import ChatEngine
 from configs import *
 
+def parse_json_stream(line):
+    decoded_line = line.decode('utf-8')
+    decoder = json.JSONDecoder()
+    pos = 0
+    while pos < len(decoded_line):
+        try:
+            result, json_end = decoder.raw_decode(decoded_line[pos:])
+            if "text" in result:
+                #print(result["text"]) # debugging
+                if result["text"]:
+                   yield result["text"][0]
+                   time.sleep(0.1)
+            pos += json_end
+        except json.JSONDecodeError:
+            # if can't decode JSON, go next character
+            pos += 1
 
 def process_file(file):
     """
@@ -86,11 +104,10 @@ def send_request_2_llm(prompt: str):
         "min_tokens": 256,
         "max_tokens": 1024
     }
-    last_response_len = len(prompt)
     response = requests.post(url, json=payload, stream=True)
-    return len(prompt), response
+    return response
 
-def process_and_respond(file, question):
+def get_hybrid_retriever(file):
     """
     Processes an input file, generates a response to a given question, and returns the response length along with the server response.
 
@@ -123,6 +140,10 @@ def process_and_respond(file, question):
     bm25_retriever = BM25Retriever(nodes=documents, similarity_top_k=TOP_K, tokenizer=text_splitter.split_text)
     vector_retriever = VectorIndexRetriever(index=vector_index, similarity_top_k=TOP_K)
     hybrid_retriever = HybridRetriever(bm25_retriever=bm25_retriever, vector_retriever=vector_retriever)
+    return hybrid_retriever
+
+def respond(hybrid_retriever, question):
     chat_engine = ChatEngine(hybrid_retriever)
     chat_history = chat_engine.ask_question(question)  # returns modified text with relevant documents + question
     return send_request_2_llm(chat_history)
+
