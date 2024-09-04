@@ -14,3 +14,4 @@ PyMuPDF==1.21.0
 python-docx==1.1.2
 flask==3.0.3
 bitsandbytes==0.43.1
+vllm==0.5.5
