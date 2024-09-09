@@ -1,7 +1,7 @@
 from flask import Flask, request, render_template, jsonify
 from flask import stream_with_context, Response, session
 from werkzeug.utils import secure_filename
-import os
+import os, time, uuid
 from llama_index.core import Settings
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from core import (parse_json_stream,
@@ -16,13 +16,12 @@ warnings.simplefilter("ignore", FutureWarning)
 import logging
 logging.basicConfig(level=logging.INFO)
 
-
 state = {}
 
-import uuid
 app = Flask(__name__, static_folder="static", static_url_path="/static")
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.secret_key = os.urandom(24)
+app.config['PERMANENT_SESSION_LIFETIME'] = 300  # Session timeout in seconds (5 minutes)
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 embedding = HuggingFaceEmbedding(
@@ -75,6 +74,26 @@ def upload_file():
     session["file_path"] = file_path
 
     return jsonify({'message': f'File {filename} uploaded successfully'}), 200
+
+@app.before_request
+def cleanup_expired_sessions():
+    session.permanent = True
+    session.modified = True
+    user_id = session.get("user_id")
+    
+    # Clean up file if session expired
+    if "last_active" in session and time.time() - session["last_active"] > app.config['PERMANENT_SESSION_LIFETIME']:
+        if "file_path" in session:
+            file_path = session["file_path"]
+            if os.path.exists(file_path):
+                os.remove(file_path)
+                print(f"Deleted expired file: {file_path}")
+            session.pop("file_path", None)
+            session.pop("user_id", None)
+        session.clear()
+    
+    # Update last active time
+    session["last_active"] = time.time()
 
 @app.route("/generate", methods=["POST"])
 def generate_response():
