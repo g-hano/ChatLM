@@ -1,6 +1,6 @@
 import logging
 logging.basicConfig(level=logging.INFO)
-from configs import SYSTEM_PROMPT, TEMPERATURE
+from configs import SYSTEM_PROMPT
 
 class ChatEngine:
     def __init__(self, retriever):
@@ -21,7 +21,7 @@ class ChatEngine:
             question (str): The question to be asked.
 
         Returns:
-            str: The response from the language model in markdown format.
+            str: The full prompt for sending to the LLM.
         """
 
         question = "[INST]" + question + "[/INST]"
